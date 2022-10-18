@@ -20,8 +20,8 @@ model = 'full'
 # Choose execution providers to use for inference
 providers = ['CUDAExecutionProvider', 'DmlExecutionProvider', 'CPUExecutionProvider']
 
-# Pick a batch size that doesn't cause memory errors on your gpu
-batch_size = 512
+# Pick a batch size that doesn't cause memory errors on your device
+batch_size = 1024
 
 # Create inference session
 session = CrepeInferenceSession(
