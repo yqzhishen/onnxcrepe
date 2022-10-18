@@ -19,28 +19,30 @@ def parse_args():
 
     # Required arguments
     parser.add_argument(
-        '--audio_files',
+        'audio_files',
         nargs='+',
-        required=True,
         help='The audio file to process')
-    parser.add_argument(
-        '--output_files',
-        nargs='+',
-        required=True,
-        help='The file to save pitch')
 
-    # Optionally save periodicity
+    # Optional arguments
     parser.add_argument(
-        '--output_periodicity_files',
-        nargs='+',
-        help='The files to save periodicity')
-
-    # Optionally customize configs
+        '--output_directory',
+        required=False,
+        help='The directory to save output')  # Defaults to directory of each audio file
+    parser.add_argument(
+        '--save_periodicity',
+        required=False,
+        action='store_true',
+        help='Whether save periodicity')
+    parser.add_argument(
+        '--format',
+        required=False,
+        default='csv',
+        help='Saving format of the result (csv or npy)')  # Combined .csv or separated .npy
     parser.add_argument(
         '--config',
+        required=False,
         default='default',
-        help='Customized configurations'
-    )
+        help='Customized configurations')
 
     return parser.parse_args()
 
@@ -56,23 +58,24 @@ def load_config(config: str):
     return config
 
 
-def make_parent_directory(file):
-    """Create parent directory for file if it does not already exist"""
-    parent = os.path.dirname(os.path.abspath(file))
-    os.makedirs(parent, exist_ok=True)
-
-
 def main():
     # Parse command-line arguments
     args = parse_args()
 
+    # Check saving format
+    if args.format != 'csv' and args.format != 'npy':
+        raise NotImplementedError('Saving format must be \'csv\' or \'npy\'.')
+
     # Ensure output directory exist
-    [make_parent_directory(file) for file in args.output_files]
-    if args.output_periodicity_files is not None:
-        [make_parent_directory(file) for file in args.output_periodicity_files]
-    
+    if args.output_directory is not None:
+        os.makedirs(args.output_directory, exist_ok=True)
+
     # Load configurations
     config = load_config(args.config)
+
+    # Check model capacity
+    if config['model'] != 'full' and config['model'] != 'tiny':
+        raise NotImplementedError('Model capacity must be \'full\' or \'tiny\'.')
 
     # Get decoder
     if config['decoder'] == 'argmax':
@@ -84,27 +87,35 @@ def main():
     else:
         raise NotImplementedError('Decoder must be \'argmax\', \'weighted_argmax\' or \'viterbi\'.')
 
-    # Create inference session
-    providers = [(provider['name'], provider['options']) for provider in config['providers']]
+    # Filter and parse providers
     available_providers_selected = []
-    for provider in providers:
-        if provider[0] in ort.get_available_providers():
+    for provider in config['providers']:
+        if provider['name'] in ort.get_available_providers():
             available_providers_selected.append(provider)
+        else:
+            print(f'{provider["name"]} is not available on this machine. Skipping.')
+
     if not available_providers_selected:
         raise NotImplementedError('None of the selected execution providers is available on this machine.')
+    providers = [(provider['name'], provider['options']) for provider in available_providers_selected]
 
+    # Create session options
+    # DirectML does not support memory pattern optimizations or parallel execution in onnxruntime. See
+    # https://onnxruntime.ai/docs/execution-providers/DirectML-ExecutionProvider.html#configuration-options
     options = ort.SessionOptions()
-    if available_providers_selected[0][0] == 'DmlExecutionProvider':
+    if available_providers_selected[0]['name'] == 'DmlExecutionProvider':
         options.enable_mem_pattern = False
         options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
-    session = CrepeInferenceSession(model=config['model'], sess_options=options, providers=available_providers_selected)
+    # Create inference session
+    session = CrepeInferenceSession(model=config['model'], sess_options=options, providers=providers)
 
     # Infer pitch and save to disk
     onnxcrepe.predict_from_files_to_files(session,
                                           args.audio_files,
-                                          args.output_files,
-                                          args.output_periodicity_files,
+                                          args.output_directory,
+                                          args.save_periodicity,
+                                          args.format,
                                           config['precision'],
                                           config['fmin'],
                                           config['fmax'] if config['fmax'] is not None else onnxcrepe.MAX_FMAX,

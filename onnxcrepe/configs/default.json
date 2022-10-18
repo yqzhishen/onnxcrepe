@@ -3,7 +3,7 @@
   "precision": 5.0,
   "batch_size": 1024,
   "fmin": 50.0,
-  "fmax": null,
+  "fmax": 1100,
   "decoder": "viterbi",
   "pad": true,
   "providers": [

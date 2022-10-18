@@ -18,7 +18,7 @@ fmax = 1100
 model = 'full'
 
 # Choose execution providers to use for inference
-providers = ['DmlExecutionProvider', 'CPUExecutionProvider']
+providers = ['CUDAExecutionProvider', 'DmlExecutionProvider', 'CPUExecutionProvider']
 
 # Pick a batch size that doesn't cause memory errors on your gpu
 batch_size = 512
@@ -33,3 +33,6 @@ pitch = onnxcrepe.predict(session, audio, sr, precision=precision, fmin=fmin, fm
 print(pitch.shape)
 print(np.mean(pitch))
 print(np.var(pitch))
+
+# Dispose inference session
+del session

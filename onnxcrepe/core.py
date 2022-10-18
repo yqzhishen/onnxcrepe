@@ -1,3 +1,5 @@
+import os.path
+
 import librosa
 import numpy as np
 import tqdm
@@ -163,8 +165,9 @@ def predict_from_file(session,
 
 def predict_from_file_to_file(session,
                               audio_file,
-                              output_pitch_file,
-                              output_periodicity_file=None,
+                              output_directory=None,
+                              save_periodicity=False,
+                              format='csv',
                               precision=None,
                               fmin=50.,
                               fmax=MAX_FMAX,
@@ -178,10 +181,14 @@ def predict_from_file_to_file(session,
             An onnxruntime.InferenceSession holding the CREPE model
         audio_file (string)
             The file to perform pitch tracking on
-        output_pitch_file (string)
-            The file to save predicted pitch
-        output_periodicity_file (string or None)
-            The file to save predicted periodicity
+        output_directory (string or None)
+            The directory to save results.
+            None means saving results in the same directory as the audio file.
+        save_periodicity (bool)
+            Whether save predicted periodicity
+        format (string)
+            The output format. 'csv' means combined csv file and
+            'npy' means separated npy files (pitch and periodicity).
         precision (float)
             The precision in milliseconds, i.e. the length of each frame
         fmin (float)
@@ -202,20 +209,41 @@ def predict_from_file_to_file(session,
 
     # Predict from file
     prediction = predict_from_file(session, audio_file, precision, fmin, fmax, decoder,
-                                   output_periodicity_file is not None, batch_size, pad)
+                                   save_periodicity, batch_size, pad)
+
+    # Get audio filename without extension
+    title = os.path.basename(audio_file).rsplit('.', maxsplit=1)[0]
+
+    # Get output directory
+    if output_directory is None:
+        output_directory = os.path.dirname(audio_file)
 
     # Save to disk
-    if output_periodicity_file is not None:
-        np.save(output_pitch_file, prediction[0])
-        np.save(output_periodicity_file, prediction[1])
-    else:
-        np.save(output_pitch_file, prediction)
+    if format == 'csv':
+        with open(os.path.join(output_directory, f'{title}.pitch.csv'), 'w') as f:
+            if save_periodicity:
+                for i in range(prediction[0].shape[1]):
+                    # time, f0, periodicity
+                    print('%f,%f,%f'
+                          % (i * precision / 1000., prediction[0][0][i], prediction[1][0][i]),
+                          file=f)
+            else:
+                for i in range(prediction.shape[1]):
+                    # time, f0
+                    print('%f,%f'
+                          % (i * precision / 1000., prediction[0][i]),
+                          file=f)
+    elif format == 'npy':
+        np.save(os.path.join(output_directory, f'{title}.f0.npy'), prediction[0])
+        if save_periodicity:
+            np.save(os.path.join(output_directory, f'{title}.periodicity.npy'), prediction[1])
 
 
 def predict_from_files_to_files(session,
                                 audio_files,
-                                output_pitch_files,
-                                output_periodicity_files=None,
+                                output_directory=None,
+                                save_periodicity=False,
+                                format='csv',
                                 precision=None,
                                 fmin=50.,
                                 fmax=MAX_FMAX,
@@ -229,10 +257,14 @@ def predict_from_files_to_files(session,
             An onnxruntime.InferenceSession holding the CREPE model
         audio_files (list[string])
             The files to perform pitch tracking on
-        output_pitch_files (list[string])
-            The files to save predicted pitch
-        output_periodicity_files (list[string] or None)
-            The files to save predicted periodicity
+        output_directory (string or None)
+            The directory to save results.
+            None means saving results in the same directory as each audio file.
+        save_periodicity (bool)
+            Whether save predicted periodicity
+        format (string)
+            The output format. 'csv' means combined csv file and
+            'npy' means separated npy files (pitch and periodicity).
         precision (float)
             The precision in milliseconds, i.e. the length of each frame
         fmin (float)
@@ -251,15 +283,11 @@ def predict_from_files_to_files(session,
             Whether to zero-pad the audio
     """
 
-    if output_periodicity_files is None:
-        output_periodicity_files = len(audio_files) * [None]
-
     # Setup iterator
-    iterator = zip(audio_files, output_pitch_files, output_periodicity_files)
-    iterator = tqdm.tqdm(iterator, desc='onnxcrepe', dynamic_ncols=True)
-    for audio_file, output_pitch_file, output_periodicity_file in iterator:
+    iterator = tqdm.tqdm(audio_files, desc='onnxcrepe', dynamic_ncols=True)
+    for audio_file in iterator:
         # Predict a file
-        predict_from_file_to_file(session, audio_file, output_pitch_file, output_periodicity_file, precision, fmin,
+        predict_from_file_to_file(session, audio_file, output_directory, save_periodicity, format, precision, fmin,
                                   fmax, decoder, batch_size, pad)
 
 
