@@ -40,7 +40,7 @@ UNVOICED = np.nan
 def predict(session,
             audio,
             sample_rate,
-            hop_length=None,
+            precision=None,
             fmin=50.,
             fmax=MAX_FMAX,
             decoder=onnxcrepe.decode.viterbi,
@@ -56,8 +56,8 @@ def predict(session,
             The audio signal
         sample_rate (int)
             The sampling rate in Hz
-        hop_length (int)
-            The hop_length in samples
+        precision (float)
+            The precision in milliseconds, i.e. the length of each frame
         fmin (float)
             The minimum allowable frequency in Hz
         fmax (float)
@@ -72,9 +72,9 @@ def predict(session,
             Whether to zero-pad the audio
 
     Returns
-        pitch (numpy.ndarray [shape=(1, 1 + int(time // hop_length))])
+        pitch (numpy.ndarray [shape=(1, 1 + int(time // precision))])
         (Optional) periodicity (numpy.ndarray
-                                [shape=(1, 1 + int(time // hop_length))])
+                                [shape=(1, 1 + int(time // precision))])
     """
 
     results = []
@@ -82,7 +82,7 @@ def predict(session,
     # Preprocess audio
     generator = preprocess(audio,
                            sample_rate,
-                           hop_length,
+                           precision,
                            batch_size,
                            pad)
     for frames in generator:
@@ -116,7 +116,7 @@ def predict(session,
 
 def predict_from_file(session,
                       audio_file,
-                      hop_length=None,
+                      precision=None,
                       fmin=50.,
                       fmax=MAX_FMAX,
                       decoder=onnxcrepe.decode.viterbi,
@@ -130,8 +130,8 @@ def predict_from_file(session,
             An onnxruntime.InferenceSession holding the CREPE model
         audio_file (string)
             The file to perform pitch tracking on
-        hop_length (int)
-            The hop_length in samples
+        precision (float)
+            The precision in milliseconds, i.e. the length of each frame
         fmin (float)
             The minimum allowable frequency in Hz
         fmax (float)
@@ -150,22 +150,22 @@ def predict_from_file(session,
             Whether to zero-pad the audio
 
     Returns
-        pitch (numpy.ndarray [shape=(1, 1 + int(time // hop_length))])
+        pitch (numpy.ndarray [shape=(1, 1 + int(time // precision))])
         (Optional) periodicity (torch.tensor
-                                [shape=(1, 1 + int(time // hop_length))])
+                                [shape=(1, 1 + int(time // precision))])
     """
     # Load audio
     audio, sample_rate = onnxcrepe.load.audio(audio_file)
 
     # Predict
-    return predict(session, audio, sample_rate, hop_length, fmin, fmax, decoder, return_periodicity, batch_size, pad)
+    return predict(session, audio, sample_rate, precision, fmin, fmax, decoder, return_periodicity, batch_size, pad)
 
 
 def predict_from_file_to_file(session,
                               audio_file,
                               output_pitch_file,
                               output_periodicity_file=None,
-                              hop_length=None,
+                              precision=None,
                               fmin=50.,
                               fmax=MAX_FMAX,
                               decoder=onnxcrepe.decode.viterbi,
@@ -182,8 +182,8 @@ def predict_from_file_to_file(session,
             The file to save predicted pitch
         output_periodicity_file (string or None)
             The file to save predicted periodicity
-        hop_length (int)
-            The hop_length in samples
+        precision (float)
+            The precision in milliseconds, i.e. the length of each frame
         fmin (float)
             The minimum allowable frequency in Hz
         fmax (float)
@@ -201,7 +201,7 @@ def predict_from_file_to_file(session,
     """
 
     # Predict from file
-    prediction = predict_from_file(hop_length, audio_file, session, fmin, fmax, decoder,
+    prediction = predict_from_file(session, audio_file, precision, fmin, fmax, decoder,
                                    output_periodicity_file is not None, batch_size, pad)
 
     # Save to disk
@@ -216,7 +216,7 @@ def predict_from_files_to_files(session,
                                 audio_files,
                                 output_pitch_files,
                                 output_periodicity_files=None,
-                                hop_length=None,
+                                precision=None,
                                 fmin=50.,
                                 fmax=MAX_FMAX,
                                 decoder=onnxcrepe.decode.viterbi,
@@ -233,8 +233,8 @@ def predict_from_files_to_files(session,
             The files to save predicted pitch
         output_periodicity_files (list[string] or None)
             The files to save predicted periodicity
-        hop_length (int)
-            The hop_length in samples
+        precision (float)
+            The precision in milliseconds, i.e. the length of each frame
         fmin (float)
             The minimum allowable frequency in Hz
         fmax (float)
@@ -259,7 +259,7 @@ def predict_from_files_to_files(session,
     iterator = tqdm.tqdm(iterator, desc='onnxcrepe', dynamic_ncols=True)
     for audio_file, output_pitch_file, output_periodicity_file in iterator:
         # Predict a file
-        predict_from_file_to_file(session, audio_file, output_pitch_file, output_periodicity_file, hop_length, fmin,
+        predict_from_file_to_file(session, audio_file, output_pitch_file, output_periodicity_file, precision, fmin,
                                   fmax, decoder, batch_size, pad)
 
 
@@ -270,7 +270,7 @@ def predict_from_files_to_files(session,
 
 def preprocess(audio,
                sample_rate,
-               hop_length=None,
+               precision=None,
                batch_size=None,
                pad=True):
     """Convert audio to model input
@@ -280,23 +280,22 @@ def preprocess(audio,
             The audio signals
         sample_rate (int)
             The sampling rate in Hz
-        hop_length (int)
-            The hop_length in samples
+        precision (float)
+            The precision in milliseconds, i.e. the length of each frame
         batch_size (int)
             The number of frames per batch
         pad (bool)
             Whether to zero-pad the audio
 
     Returns
-        frames (numpy.ndarray [shape=(1 + int(time // hop_length), 1024)])
+        frames (numpy.ndarray [shape=(1 + int(time // precision), 1024)])
     """
-    # Default hop length of 10 ms
-    hop_length = sample_rate // 100 if hop_length is None else hop_length
-
     # Resample
     if sample_rate != SAMPLE_RATE:
         audio = librosa.resample(audio, sample_rate, SAMPLE_RATE)
-        hop_length = int(hop_length * SAMPLE_RATE / sample_rate)
+
+    # Default hop length of 10 ms
+    hop_length = SAMPLE_RATE // 100 if precision is None else int(SAMPLE_RATE * precision / 1000)
 
     # Get total number of frames
 
@@ -340,11 +339,11 @@ def infer(session, frames):
     Arguments
         session (onnxcrepe.CrepeInferenceSession)
             An onnxruntime.InferenceSession holding the CREPE model
-        frames (numpy.ndarray [shape=(time / hop_length, 1024)])
+        frames (numpy.ndarray [shape=(time / precision, 1024)])
             The network input
 
     Returns
-        logits (numpy.ndarray [shape=(1 + int(time // hop_length), 360)])
+        logits (numpy.ndarray [shape=(1 + int(time // precision), 360)])
     """
     # Apply model
     return session.run(None, {'frames': frames})[0]
@@ -358,7 +357,7 @@ def postprocess(probabilities,
     """Convert model output to F0 and periodicity
 
     Arguments
-        probabilities (numpy.ndarray [shape=(1, 360, time / hop_length)])
+        probabilities (numpy.ndarray [shape=(1, 360, time / precision)])
             The probabilities for each pitch bin inferred by the network
         fmin (float)
             The minimum allowable frequency in Hz
@@ -372,8 +371,8 @@ def postprocess(probabilities,
             Whether to also return the network confidence
 
     Returns
-        pitch (numpy.ndarray [shape=(1, 1 + int(time // hop_length))])
-        periodicity (numpy.ndarray [shape=(1, 1 + int(time // hop_length))])
+        pitch (numpy.ndarray [shape=(1, 1 + int(time // precision))])
+        periodicity (numpy.ndarray [shape=(1, 1 + int(time // precision))])
     """
     # Convert frequency range to pitch bin range
     minidx = onnxcrepe.convert.frequency_to_bins(fmin)
@@ -400,16 +399,16 @@ def postprocess(probabilities,
 
 def periodicity(probabilities, bins):
     """Computes the periodicity from the network output and pitch bins"""
-    # shape=(batch * time / hop_length, 360)
+    # shape=(batch * time / precision, 360)
     probs_stacked = probabilities.transpose(1, 2).reshape(-1, PITCH_BINS)
 
-    # shape=(batch * time / hop_length, 1)
+    # shape=(batch * time / precision, 1)
     bins_stacked = bins.reshape(-1, 1).astype(np.int64)
 
     # Use maximum logit over pitch bins as periodicity
     periodicity = np.take_along_axis(probs_stacked, bins_stacked, axis=1)
 
-    # shape=(batch, time / hop_length)
+    # shape=(batch, time / precision)
     return periodicity.reshape(probabilities.shape[0], probabilities.shape[2])
 
 

@@ -7,7 +7,7 @@ from onnxcrepe.session import CrepeInferenceSession
 audio, sr = onnxcrepe.load.audio(r'assets/xtgg_mono_16k_denoise.wav')
 
 # Here we'll use a 5 millisecond hop length
-hop_length = int(sr / 200.)
+precision = 5.0
 
 # Provide a sensible frequency range for your domain (upper limit is 2006 Hz)
 # This would be a reasonable range for speech
@@ -29,7 +29,7 @@ session = CrepeInferenceSession(
     providers=providers)
 
 # Compute pitch using the default DirectML GPU or CPU
-pitch = onnxcrepe.predict(session, audio, sr, hop_length=hop_length, fmin=fmin, fmax=fmax, batch_size=batch_size)
+pitch = onnxcrepe.predict(session, audio, sr, precision=precision, fmin=fmin, fmax=fmax, batch_size=batch_size)
 print(pitch.shape)
 print(np.mean(pitch))
 print(np.var(pitch))

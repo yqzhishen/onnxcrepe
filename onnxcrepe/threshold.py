@@ -113,12 +113,13 @@ class Silence:
                  periodicity,
                  audio,
                  sample_rate=onnxcrepe.SAMPLE_RATE,
-                 hop_length=None,
+                 precision=None,
                  pad=True):
         # Don't modify in-place
         periodicity = periodicity.copy()
 
         # Compute loudness
+        hop_length = sample_rate * precision // 1000
         loudness = onnxcrepe.loudness.a_weighted(
             audio, sample_rate, hop_length, pad)
 

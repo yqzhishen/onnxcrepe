@@ -30,7 +30,7 @@ def a_weighted(audio, sample_rate, hop_length=None, pad=True):
     hop_length = sample_rate // 100 if hop_length is None else hop_length
 
     # Convert to numpy
-    audio = audio.detach().cpu().numpy().squeeze(0)
+    audio = audio.squeeze(0)
 
     # Resample
     if sample_rate != onnxcrepe.SAMPLE_RATE:

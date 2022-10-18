@@ -1,0 +1,28 @@
+{
+  "model": "full",
+  "precision": 5.0,
+  "batch_size": 1024,
+  "fmin": 50.0,
+  "fmax": null,
+  "decoder": "viterbi",
+  "pad": true,
+  "providers": [
+    {
+      "name": "CUDAExecutionProvider",
+      "options": {
+        "device_id": 0,
+        "cudnn_conv_algo_search": "DEFAULT"
+      }
+    },
+    {
+      "name": "DmlExecutionProvider",
+      "options": {
+        "device_id": 0
+      }
+    },
+    {
+      "name": "CPUExecutionProvider",
+      "options": {}
+    }
+  ]
+}
