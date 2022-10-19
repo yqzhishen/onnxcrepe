@@ -74,8 +74,9 @@ def main():
     config = load_config(args.config)
 
     # Check model capacity
-    if config['model'] != 'full' and config['model'] != 'tiny':
-        raise NotImplementedError('Model capacity must be \'full\' or \'tiny\'.')
+    if config['model'] not in ['full', 'large', 'medium', 'small', 'tiny']:
+        raise NotImplementedError(
+            'Model capacity must be \'full\', \'large\', \'medium\', \'small\' or \'tiny\'.')
 
     # Get decoder
     if config['decoder'] == 'argmax':
