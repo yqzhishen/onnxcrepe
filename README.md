@@ -21,4 +21,4 @@ Codes and model weights in this repository are based on the following repos:
 
 
 ## References
-[1] J. W. Kim, J. Salamon, P. Li, and J. P. Bello, “Crepe: A Convolutional Representation for Pitch Estimation,” in 2018 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP).
+[1] J. W. Kim, J. Salamon, P. Li, and J. P. Bello, “[Crepe: A Convolutional Representation for Pitch Estimation](https://arxiv.org/abs/1802.06182),” in 2018 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP).
