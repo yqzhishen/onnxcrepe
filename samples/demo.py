@@ -14,7 +14,7 @@ precision = 5.0
 fmin = 50
 fmax = 1100
 
-# Select a model capacity--one of "tiny" or "full"
+# Select a model capacity--one of "full", "large", "medium", "small" and "tiny"
 model = 'full'
 
 # Choose execution providers to use for inference
