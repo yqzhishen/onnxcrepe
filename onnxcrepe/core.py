@@ -323,18 +323,18 @@ def preprocess(audio,
         audio = librosa.resample(audio, sample_rate, SAMPLE_RATE)
 
     # Default hop length of 10 ms
-    hop_length = SAMPLE_RATE // 100 if precision is None else int(SAMPLE_RATE * precision / 1000)
+    hop_length = SAMPLE_RATE / 100 if precision is None else SAMPLE_RATE * precision / 1000
 
     # Get total number of frames
 
     # Maybe pad
     if pad:
-        total_frames = 1 + int(audio.shape[0] // hop_length)
+        total_frames = 1 + int(audio.shape[0] / hop_length)
         audio = np.pad(
             audio,
             (WINDOW_SIZE // 2, WINDOW_SIZE // 2))
     else:
-        total_frames = 1 + int((audio.shape[0] - WINDOW_SIZE) // hop_length)
+        total_frames = 1 + int((audio.shape[0] - WINDOW_SIZE) / hop_length)
 
     # Default to running all frames in a single batch
     batch_size = total_frames if batch_size is None else batch_size
@@ -342,16 +342,16 @@ def preprocess(audio,
     # Generate batches
     for i in range(0, total_frames, batch_size):
         # Batch indices
-        start = max(0, i * hop_length)
+        start = max(0, int(i * hop_length))
         end = min(audio.shape[0],
-                  (i + batch_size - 1) * hop_length + WINDOW_SIZE)
+                  int((i + batch_size - 1) * hop_length) + WINDOW_SIZE)
 
         # Chunk
         n_bytes = audio.strides[-1]
         frames = np.lib.stride_tricks.as_strided(
             audio[start:end],
-            shape=((end - start - WINDOW_SIZE) // hop_length, WINDOW_SIZE),
-            strides=(hop_length * n_bytes, n_bytes))  # shape=(batch, 1024)
+            shape=((end - start - WINDOW_SIZE) // int(hop_length), WINDOW_SIZE),
+            strides=(int(hop_length) * n_bytes, n_bytes))  # shape=(batch, 1024)
 
         # Note:
         # Z-score standardization operations originally located here
@@ -391,10 +391,8 @@ def postprocess(probabilities,
             The minimum allowable frequency in Hz
         fmax (float)
             The maximum allowable frequency in Hz
-        viterbi (bool)
-            Whether to use viterbi decoding
-        return_harmonicity (bool) [DEPRECATED]
-            Whether to also return the network confidence
+        decoder (function)
+            The decoder to use. See decode.py for decoders.
         return_periodicity (bool)
             Whether to also return the network confidence
 
