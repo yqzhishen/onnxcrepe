@@ -350,7 +350,7 @@ def preprocess(audio,
         n_bytes = audio.strides[-1]
         frames = np.lib.stride_tricks.as_strided(
             audio[start:end],
-            shape=((end - start - WINDOW_SIZE) // int(hop_length), WINDOW_SIZE),
+            shape=((end - start - WINDOW_SIZE) // int(hop_length) + 1, WINDOW_SIZE),
             strides=(int(hop_length) * n_bytes, n_bytes))  # shape=(batch, 1024)
 
         # Note:

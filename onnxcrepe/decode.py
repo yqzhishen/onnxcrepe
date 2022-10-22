@@ -24,7 +24,7 @@ def weighted_argmax(logits: np.ndarray):
 
     # Find bounds of analysis window
     start = np.maximum(0, bins - 4)
-    end = np.minimum(logits.shape[2], bins + 5)
+    end = np.minimum(logits.shape[1], bins + 5)
 
     # Mask out everything outside of window
     for batch in range(logits.shape[0]):
