@@ -425,10 +425,9 @@ def postprocess(probabilities,
 
 def periodicity(probabilities, bins):
     """Computes the periodicity from the network output and pitch bins"""
-    # shape=(batch * time / precision, 360)
-    probs_stacked = probabilities.transpose(1, 2).reshape(-1, PITCH_BINS)
-
-    # shape=(batch * time / precision, 1)
+    # shape=(time / precision, 360)
+    probs_stacked = probabilities.transpose(0, 2, 1).reshape(-1, PITCH_BINS)
+    # shape=(time / precision, 1)
     bins_stacked = bins.reshape(-1, 1).astype(np.int64)
 
     # Use maximum logit over pitch bins as periodicity
