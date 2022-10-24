@@ -22,29 +22,7 @@ def weighted_argmax(logits: np.ndarray):
     # Find center of analysis window
     bins = logits.argmax(axis=1)
 
-    # Find bounds of analysis window
-    start = np.maximum(0, bins - 4)
-    end = np.minimum(logits.shape[1], bins + 5)
-
-    # Mask out everything outside of window
-    for batch in range(logits.shape[0]):
-        for time in range(logits.shape[2]):
-            logits[batch, :start[batch, time], time] = float('-inf')
-            logits[batch, end[batch, time]:, time] = float('-inf')
-
-    # Construct weights
-    if not hasattr(weighted_argmax, 'weights'):
-        weights = onnxcrepe.convert.bins_to_cents(np.arange(360))
-        weighted_argmax.weights = weights[None, :, None]
-
-    # Convert to probabilities (sigmoid)
-    probs = 1 / (1 + np.exp(-logits))
-
-    # Apply weights
-    cents = (weighted_argmax.weights * probs).sum(axis=1) / probs.sum(axis=1)
-
-    # Convert to frequency in Hz
-    return bins, onnxcrepe.convert.cents_to_frequency(cents)
+    return bins, _apply_weights(logits, bins)
 
 
 def viterbi(logits):
@@ -68,3 +46,36 @@ def viterbi(logits):
 
     # Convert to frequency in Hz
     return bins, onnxcrepe.convert.bins_to_frequency(bins)
+
+
+def weighted_viterbi(logits):
+    """Sample observations combining viterbi decoding and weighted argmax"""
+    bins, _ = viterbi(logits)
+
+    return bins, _apply_weights(logits, bins)
+
+
+def _apply_weights(logits, bins):
+    # Find bounds of analysis window
+    start = np.maximum(0, bins - 4)
+    end = np.minimum(logits.shape[1], bins + 5)
+
+    # Mask out everything outside of window
+    for batch in range(logits.shape[0]):
+        for time in range(logits.shape[2]):
+            logits[batch, :start[batch, time], time] = float('-inf')
+            logits[batch, end[batch, time]:, time] = float('-inf')
+
+    # Construct weights
+    if not hasattr(_apply_weights, 'weights'):
+        weights = onnxcrepe.convert.bins_to_cents(np.arange(360))
+        _apply_weights.weights = weights[None, :, None]
+
+    # Convert to probabilities (ReLU)
+    probs = np.maximum(0, logits)
+
+    # Apply weights
+    cents = (_apply_weights.weights * probs).sum(axis=1) / probs.sum(axis=1)
+
+    # Convert to frequency in Hz
+    return onnxcrepe.convert.cents_to_frequency(cents)

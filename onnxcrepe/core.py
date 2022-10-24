@@ -45,7 +45,7 @@ def predict(session,
             precision=None,
             fmin=50.,
             fmax=MAX_FMAX,
-            decoder=onnxcrepe.decode.viterbi,
+            decoder=onnxcrepe.decode.weighted_viterbi,
             return_periodicity=False,
             batch_size=None,
             pad=True):
@@ -121,7 +121,7 @@ def predict_from_file(session,
                       precision=None,
                       fmin=50.,
                       fmax=MAX_FMAX,
-                      decoder=onnxcrepe.decode.viterbi,
+                      decoder=onnxcrepe.decode.weighted_viterbi,
                       return_periodicity=False,
                       batch_size=None,
                       pad=True):
@@ -171,7 +171,7 @@ def predict_from_file_to_file(session,
                               precision=None,
                               fmin=50.,
                               fmax=MAX_FMAX,
-                              decoder=onnxcrepe.decode.viterbi,
+                              decoder=onnxcrepe.decode.weighted_viterbi,
                               batch_size=None,
                               pad=True):
     """Performs pitch estimation from file on disk
@@ -247,7 +247,7 @@ def predict_from_files_to_files(session,
                                 precision=None,
                                 fmin=50.,
                                 fmax=MAX_FMAX,
-                                decoder=onnxcrepe.decode.viterbi,
+                                decoder=onnxcrepe.decode.weighted_viterbi,
                                 batch_size=None,
                                 pad=True):
     """Performs pitch estimation from files on disk without reloading model
@@ -380,7 +380,7 @@ def infer(session, frames):
 def postprocess(probabilities,
                 fmin=0.,
                 fmax=MAX_FMAX,
-                decoder=onnxcrepe.decode.viterbi,
+                decoder=onnxcrepe.decode.weighted_viterbi,
                 return_periodicity=False):
     """Convert model output to F0 and periodicity
 

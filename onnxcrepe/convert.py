@@ -9,17 +9,17 @@ import onnxcrepe
 ###############################################################################
 
 
-def bins_to_cents(bins):
+def bins_to_cents(bins, apply_dither=False):
     """Converts pitch bins to cents"""
     cents = onnxcrepe.CENTS_PER_BIN * bins + 1997.3794084376191
 
-    # Trade quantization error for noise
-    return dither(cents)
+    # Trade quantization error for noise (disabled by default)
+    return dither(cents) if apply_dither else cents
 
 
-def bins_to_frequency(bins):
+def bins_to_frequency(bins, apply_dither=False):
     """Converts pitch bins to frequency in Hz"""
-    return cents_to_frequency(bins_to_cents(bins))
+    return cents_to_frequency(bins_to_cents(bins, apply_dither=apply_dither))
 
 
 def cents_to_bins(cents, quantize_fn=np.floor):
