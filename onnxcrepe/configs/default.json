@@ -1,11 +1,17 @@
 {
   "model": "full",
   "precision": 5.0,
-  "batch_size": 1024,
+  "batch_size": 512,
+  "pad": true,
   "fmin": 50.0,
   "fmax": 1100.0,
-  "decoder": "viterbi",
-  "pad": true,
+  "decoder": "weighted_viterbi",
+  "threshold": {
+    "type": "hard",
+    "arguments": {
+      "at": 0.21
+    }
+  },
   "providers": [
     {
       "name": "CUDAExecutionProvider",

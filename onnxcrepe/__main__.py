@@ -85,8 +85,10 @@ def main():
         decoder = onnxcrepe.decode.weighted_argmax
     elif config['decoder'] == 'viterbi':
         decoder = onnxcrepe.decode.viterbi
+    elif config['decoder'] == 'weighted_viterbi':
+        decoder = onnxcrepe.decode.weighted_viterbi
     else:
-        raise NotImplementedError('Decoder must be \'argmax\', \'weighted_argmax\' or \'viterbi\'.')
+        raise NotImplementedError('Decoder must be \'argmax\', \'weighted_argmax\', \'viterbi\' or \'weighted_viterbi\'.')
 
     # Filter and parse providers
     available_providers_selected = []
